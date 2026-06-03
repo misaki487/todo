@@ -9,6 +9,7 @@
 <meta name="theme-color" content="#4f46e5">
 <meta name="description" content="简洁高效的待办事项管理工具">
 <title>📋 待办事项</title>
+<link rel="manifest" href="./manifest.json">
 <style>
   :root {
     --bg: #f0f2f5;
@@ -237,24 +238,13 @@
 <script>
 (function () {
   // ============================================================
-  // PWA SETUP — 使用真实文件（非 blob，Chrome 要求 SW 必须来自同源文件）
+  // PWA SETUP
   // ============================================================
 
-  // 计算当前页面基础路径（适配 GitHub Pages 子目录）
-  var pageUrl = new URL(location.href);
-  var basePath = location.pathname.replace(/[^/]*$/, '');
-  if (basePath === '') basePath = '/';
-
-  // 动态设置 manifest 链接
-  var manifestLink = document.createElement('link');
-  manifestLink.rel = 'manifest';
-  manifestLink.href = basePath + 'manifest.json';
-  document.head.appendChild(manifestLink);
-
-  // 注册 Service Worker
+  // 注册 Service Worker（相对路径，浏览器自动解析）
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register(basePath + 'sw.js', { scope: basePath }).then(function(reg) {
-      console.log('SW registered');
+    navigator.serviceWorker.register('./sw.js').then(function(reg) {
+      console.log('SW registered, scope:', reg.scope);
     }).catch(function(err) {
       console.log('SW failed:', err);
     });
