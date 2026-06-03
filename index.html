@@ -418,6 +418,11 @@
 </head>
 <body>
 
+<!-- 调试状态栏 -->
+<div id="pwaDebug" style="background:#fff3cd;color:#856404;padding:4px 16px;font-size:12px;text-align:center;display:none;flex-shrink:0;">
+  PWA 检查中...
+</div>
+
 <!-- 顶部栏 -->
 <div class="topbar">
   <h1>📋 待办事项</h1>
@@ -795,10 +800,37 @@
   updateDate();
 
   // ── Register Service Worker ──
+  const pwaDebug = document.getElementById('pwaDebug');
+  function pwaLog(msg, ok) {
+    console.log(msg);
+    pwaDebug.style.display = 'block';
+    pwaDebug.style.background = ok ? '#d4edda' : '#fff3cd';
+    pwaDebug.style.color = ok ? '#155724' : '#856404';
+    pwaDebug.textContent = msg;
+  }
+
+  // 检查 manifest
+  const manifestLink = document.querySelector('link[rel="manifest"]');
+  if (manifestLink) {
+    fetch(manifestLink.href).then(r => r.json()).then(m => {
+      pwaLog('✅ Manifest 加载成功: ' + m.name + ' | 图标: ' + m.icons.length + '个', true);
+    }).catch(e => {
+      pwaLog('❌ Manifest 加载失败: ' + e.message, false);
+    });
+  } else {
+    pwaLog('❌ 未找到 manifest link', false);
+  }
+
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+      navigator.serviceWorker.register('./sw.js', { scope: './' }).then(reg => {
+        pwaLog('✅ SW 已注册 | ✅ Manifest 已加载 | 应可安装', true);
+      }).catch(err => {
+        pwaLog('❌ SW 注册失败: ' + err.message, false);
+      });
     });
+  } else {
+    pwaLog('❌ 浏览器不支持 Service Worker', false);
   }
 
   // ── Init ──
