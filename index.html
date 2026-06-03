@@ -237,92 +237,51 @@
 <script>
 (function () {
   // ============================================================
-  // PWA SETUP — manifest + service worker via blob URLs
+  // PWA SETUP — 使用真实文件（非 blob，Chrome 要求 SW 必须来自同源文件）
   // ============================================================
 
-  // Generate manifest as blob (avoids file-loading issues)
-  const manifest = {
-    name: '待办事项',
-    short_name: 'Todo',
-    description: '简洁高效的待办事项管理工具',
-    start_url: location.href.replace(location.search, ''),
-    scope: location.origin + location.pathname.replace(/[^/]*$/, ''),
-    display: 'standalone',
-    orientation: 'portrait',
-    background_color: '#4f46e5',
-    theme_color: '#4f46e5',
-    lang: 'zh-CN',
-    icons: [{
-      src: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="36" fill="#4f46e5"/><text x="96" y="74" text-anchor="middle" font-size="80">📋</text><text x="96" y="140" text-anchor="middle" font-size="36" font-weight="bold" fill="white">Todo</text></svg>'),
-      sizes: '192x192',
-      type: 'image/svg+xml',
-      purpose: 'any maskable'
-    }]
-  };
+  // 计算当前页面基础路径（适配 GitHub Pages 子目录）
+  var pageUrl = new URL(location.href);
+  var basePath = location.pathname.replace(/[^/]*$/, '');
+  if (basePath === '') basePath = '/';
 
-  const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-  const manifestUrl = URL.createObjectURL(manifestBlob);
-  const link = document.createElement('link');
-  link.rel = 'manifest';
-  link.href = manifestUrl;
-  document.head.appendChild(link);
+  // 动态设置 manifest 链接
+  var manifestLink = document.createElement('link');
+  manifestLink.rel = 'manifest';
+  manifestLink.href = basePath + 'manifest.json';
+  document.head.appendChild(manifestLink);
 
-  // Generate service worker as blob
-  const swCode = `
-const CACHE = 'todo-v3';
-self.addEventListener('install', e => { self.skipWaiting(); });
-self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))));
-  self.clients.claim();
-});
-self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      return cached || fetch(e.request).then(resp => {
-        if (resp && resp.status === 200) {
-          const clone = resp.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return resp;
-      }).catch(() => caches.match(e.request));
-    })
-  );
-});
-`;
-
-  const swBlob = new Blob([swCode], { type: 'application/javascript' });
-  const swUrl = URL.createObjectURL(swBlob);
-
+  // 注册 Service Worker
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register(swUrl).then(reg => {
+    navigator.serviceWorker.register(basePath + 'sw.js', { scope: basePath }).then(function(reg) {
       console.log('SW registered');
-    }).catch(err => {
+    }).catch(function(err) {
       console.log('SW failed:', err);
     });
   }
 
   // PWA Install handling
-  let deferredPrompt = null;
-  const installFab = document.getElementById('installFab');
+  var deferredPrompt = null;
+  var installFab = document.getElementById('installFab');
 
-  window.addEventListener('beforeinstallprompt', e => {
+  window.addEventListener('beforeinstallprompt', function(e) {
     e.preventDefault();
     deferredPrompt = e;
     installFab.classList.add('show');
   });
 
-  installFab.addEventListener('click', async () => {
+  installFab.addEventListener('click', function() {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
-    const result = await deferredPrompt.userChoice;
-    if (result.outcome === 'accepted') {
-      installFab.classList.remove('show');
-      deferredPrompt = null;
-    }
+    deferredPrompt.userChoice.then(function(result) {
+      if (result.outcome === 'accepted') {
+        installFab.classList.remove('show');
+        deferredPrompt = null;
+      }
+    });
   });
 
-  window.addEventListener('appinstalled', () => {
+  window.addEventListener('appinstalled', function() {
     installFab.classList.remove('show');
     deferredPrompt = null;
   });

@@ -1,0 +1,13 @@
+{
+  "name": "Todo 待办事项",
+  "short_name": "待办事项",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#4f46e5",
+  "theme_color": "#4f46e5",
+  "icons": [{
+    "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%234f46e5'/%3E%3Ctext x='96' y='74' text-anchor='middle' font-size='80'%3E📋%3C/text%3E%3Ctext x='96' y='140' text-anchor='middle' font-size='36' font-weight='bold' fill='white'%3ETodo%3C/text%3E%3C/svg%3E",
+    "sizes": "192x192",
+    "type": "image/svg+xml"
+  }]
+}
