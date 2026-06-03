@@ -1,9 +1,9 @@
 // Service Worker — 离线缓存 + 安装支持
 const CACHE_NAME = 'todo-pwa-v2';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json'
+  './',
+  './index.html',
+  './manifest.json'
 ];
 
 // 安装：预缓存核心文件
@@ -47,7 +47,7 @@ self.addEventListener('fetch', event => {
         return response;
       }).catch(() => {
         // 网络失败，返回离线页面（SPA 场景返回首页）
-        return caches.match('/index.html');
+        return caches.match('./index.html');
       });
     })
   );
