@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="待办事项">
+<meta name="theme-color" content="#4f46e5">
+<meta name="description" content="简洁高效的待办事项管理工具">
+<title>📋 待办事项</title>
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- iOS 图标 -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234f46e5'/><text x='50' y='40' text-anchor='middle' font-size='46'>📋</text></svg>">
+
+<style>
+  :root {
+    --bg: #f0f2f5;
+    --card-bg: #ffffff;
+    --text: #1a1a2e;
+    --text-secondary: #6b7280;
+    --border: #e5e7eb;
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --danger: #ef4444;
+    --success: #10b981;
+    --danger-bg: #fef2f2;
+    --radius: 12px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Top Bar ── */
+  .topbar {
+    background: var(--primary);
+    color: #fff;
+    padding: 16px 20px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .topbar h1 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    flex: 1;
+  }
+  .topbar .date {
+    font-size: .8rem;
+    opacity: .85;
+  }
+
+  /* ── Install Banner ── */
+  .install-banner {
+    display: none;
+    background: #1a1a2e;
+    color: #fff;
+    padding: 14px 20px;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 12px;
+    font-size: .875rem;
+  }
+  .install-banner.show { display: flex; }
+  .install-banner .msg { flex: 1; }
+  .install-banner .install-btn {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 8px;
+    background: #fff;
+    color: #1a1a2e;
+    font-weight: 600;
+    font-size: .85rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .install-banner .dismiss-btn {
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #999;
+    font-size: 1.2rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  /* ── Scrollable body ── */
+  .main-scroll {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+    padding-bottom: calc(16px + var(--safe-bottom));
+  }
+
+  .app {
+    max-width: 500px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* ── Stats ── */
+  .stats {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  .stat-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 14px 22px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    text-align: center;
+    min-width: 70px;
+    flex: 1;
+  }
+  .stat-card .num {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .stat-card .label {
+    font-size: .72rem;
+    color: var(--text-secondary);
+  }
+
+  /* ── Input ── */
+  .input-wrap {
+    display: flex;
+    gap: 8px;
+  }
+  .input-wrap input {
+    flex: 1;
+    padding: 14px 16px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    outline: none;
+    background: var(--card-bg);
+    color: var(--text);
+    transition: border-color .2s;
+  }
+  .input-wrap input:focus {
+    border-color: var(--primary);
+  }
+  .input-wrap button {
+    padding: 14px 22px;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--primary);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .2s;
+  }
+  .input-wrap button:active {
+    background: var(--primary-hover);
+  }
+
+  /* ── Filters ── */
+  .filters {
+    display: flex;
+    gap: 4px;
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+  .filters button {
+    flex: 1;
+    padding: 11px 8px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: .85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .filters button.active {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  /* ── Todo List ── */
+  .todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+  }
+  .empty .icon {
+    font-size: 3.5rem;
+    margin-bottom: 12px;
+    display: block;
+    opacity: .7;
+  }
+  .empty .text {
+    font-size: .95rem;
+  }
+
+  .todo-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card-bg);
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    transition: transform .2s, box-shadow .2s;
+    animation: fadeIn .25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  @keyframes fadeIn {
+    from { opacity:0; transform: translateY(-6px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  .todo-item.completed .todo-text {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+  }
+
+  /* Swipe delete */
+  .todo-item.swiped {
+    transform: translateX(-80px);
+  }
+  .swipe-delete {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 80px;
+    background: var(--danger);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .9rem;
+    font-weight: 600;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    transform: translateX(100%);
+    transition: transform .2s;
+    pointer-events: none;
+  }
+  .todo-item.swiped .swipe-delete {
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  /* Checkbox */
+  .check-btn {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .2s;
+    padding: 0;
+  }
+  .check-btn.done {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+    font-weight: 700;
+  }
+
+  .todo-text {
+    flex: 1;
+    font-size: 1rem;
+    word-break: break-word;
+    padding: 4px 0;
+  }
+
+  /* Action buttons */
+  .action-btn {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s;
+    padding: 0;
+  }
+  .action-btn.edit-btn:active { background: #eef2ff; }
+  .action-btn.del-btn:active { background: var(--danger-bg); }
+
+  /* ── Footer ── */
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+  }
+  .footer .items-left {
+    color: var(--text-secondary);
+    font-size: .8rem;
+  }
+  .footer .clear-btn {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--danger);
+    font-size: .8rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .footer .clear-btn:disabled {
+    opacity: .35;
+    cursor: default;
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1a1a2e;
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 20px;
+    font-size: .85rem;
+    opacity: 0;
+    transition: all .3s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── Editing mode ── */
+  .todo-item.editing .todo-text { display: none; }
+  .todo-item.editing .action-btn { display: none; }
+  .edit-input {
+    display: none;
+    flex: 1;
+    padding: 10px 12px;
+    border: 2px solid var(--primary);
+    border-radius: 10px;
+    font-size: 1rem;
+    outline: none;
+    background: var(--card-bg);
+    color: var(--text);
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  .todo-item.editing .edit-input { display: block; }
+  .todo-item.editing .check-btn { display: none; }
+  .btn-save, .btn-cancel {
+    display: none;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 10px;
+    font-size: .85rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .todo-item.editing .btn-save,
+  .todo-item.editing .btn-cancel { display: inline-block; }
+  .btn-save {
+    background: var(--primary);
+    color: #fff;
+  }
+  .btn-cancel {
+    background: var(--bg);
+    color: var(--text-secondary);
+  }
+</style>
+</head>
+<body>
+
+<!-- 顶部栏 -->
+<div class="topbar">
+  <h1>📋 待办事项</h1>
+  <span class="date" id="dateDisplay"></span>
+</div>
+
+<!-- 安装提示横幅 -->
+<div class="install-banner" id="installBanner">
+  <span class="msg">📲 添加到主屏幕，随时随地使用</span>
+  <button class="install-btn" id="installBtn">安装</button>
+  <button class="dismiss-btn" id="dismissBanner">✕</button>
+</div>
+
+<!-- 主内容区 -->
+<div class="main-scroll" id="mainScroll">
+  <div class="app">
+
+    <!-- 统计 -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="num" id="countTotal">0</div>
+        <div class="label">全部</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="countActive">0</div>
+        <div class="label">待完成</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="countDone">0</div>
+        <div class="label">已完成</div>
+      </div>
+    </div>
+
+    <!-- 输入框 -->
+    <div class="input-wrap">
+      <input type="text" id="todoInput" placeholder="添加新的待办事项…" maxlength="200" autocomplete="off" enterkeyhint="done">
+      <button id="addBtn">➕ 添加</button>
+    </div>
+
+    <!-- 筛选 -->
+    <div class="filters">
+      <button class="active" data-filter="all">全部</button>
+      <button data-filter="active">待完成</button>
+      <button data-filter="done">已完成</button>
+    </div>
+
+    <!-- 列表 -->
+    <div class="todo-list" id="todoList"></div>
+
+    <!-- 底部 -->
+    <div class="footer">
+      <span class="items-left" id="itemsLeft"></span>
+      <button class="clear-btn" id="clearDone" disabled>🗑 清除已完成</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'todos_pwa_data';
+  let todos = [];
+  let filter = 'all';
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let swipedItem = null;
+  let deferredPrompt = null;
+
+  // ── DOM refs ──
+  const $ = s => document.querySelector(s);
+  const elInput      = $('#todoInput');
+  const elAddBtn     = $('#addBtn');
+  const elList       = $('#todoList');
+  const elDate       = $('#dateDisplay');
+  const elCountTotal = $('#countTotal');
+  const elCountActive= $('#countActive');
+  const elCountDone  = $('#countDone');
+  const elItemsLeft  = $('#itemsLeft');
+  const elClearDone  = $('#clearDone');
+  const elToast      = $('#toast');
+  const elBanner     = $('#installBanner');
+  const elInstallBtn = $('#installBtn');
+  const elDismissBtn = $('#dismissBanner');
+  const filterBtns   = document.querySelectorAll('.filters button');
+
+  // ── Persistence ──
+  function load() {
+    try { todos = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { todos = []; }
+    if (!Array.isArray(todos)) todos = [];
+  }
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+  }
+
+  // ── Toast ──
+  let toastTimer;
+  function toast(msg) {
+    clearTimeout(toastTimer);
+    elToast.textContent = msg;
+    elToast.classList.add('show');
+    toastTimer = setTimeout(() => elToast.classList.remove('show'), 1800);
+  }
+
+  // ── Gen ID ──
+  function genId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  // ── Filter ──
+  function getFiltered() {
+    if (filter === 'active') return todos.filter(t => !t.done);
+    if (filter === 'done')   return todos.filter(t => t.done);
+    return todos;
+  }
+
+  // ── Stats ──
+  function updateStats() {
+    const total  = todos.length;
+    const active = todos.filter(t => !t.done).length;
+    const done   = total - active;
+    elCountTotal.textContent  = total;
+    elCountActive.textContent = active;
+    elCountDone.textContent   = done;
+    elItemsLeft.textContent   = active === 0 ? '全部完成 🎉' : `${active} 项待完成`;
+    elClearDone.disabled      = done === 0;
+  }
+
+  // ── Render ──
+  function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function render() {
+    const filtered = getFiltered();
+    updateStats();
+
+    if (filtered.length === 0) {
+      const msgs = {
+        all:    { icon:'📝', text:'还没有待办事项，添加一个吧！' },
+        active: { icon:'✅', text:'所有事项都已完成！' },
+        done:   { icon:'📋', text:'还没有已完成的事项' },
+      };
+      const m = msgs[filter];
+      elList.innerHTML = `<div class="empty"><span class="icon">${m.icon}</span><span class="text">${m.text}</span></div>`;
+      return;
+    }
+
+    elList.innerHTML = filtered.map(t => {
+      const cls = t.done ? 'todo-item completed' : 'todo-item';
+      const checkCls = t.done ? 'check-btn done' : 'check-btn';
+      return `
+        <div class="${cls}" data-id="${t.id}">
+          <button class="${checkCls}" data-action="toggle">${t.done ? '✓' : ''}</button>
+          <span class="todo-text">${escapeHtml(t.text)}</span>
+          <input class="edit-input" value="${escapeHtml(t.text)}" maxlength="200">
+          <button class="action-btn edit-btn" data-action="edit">✏️</button>
+          <button class="action-btn del-btn" data-action="delete">🗑</button>
+          <button class="btn-save" data-action="save">保存</button>
+          <button class="btn-cancel" data-action="cancel">取消</button>
+          <div class="swipe-delete">删除</div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Actions ──
+  function addTodo() {
+    const text = elInput.value.trim();
+    if (!text) { elInput.focus(); return; }
+    todos.unshift({ id: genId(), text, done: false });
+    save();
+    elInput.value = '';
+    elInput.focus();
+    render();
+    toast('已添加 ✓');
+  }
+
+  function toggleTodo(id) {
+    const todo = todos.find(t => t.id === id);
+    if (todo) { todo.done = !todo.done; save(); render(); }
+  }
+
+  function deleteTodo(id) {
+    const todo = todos.find(t => t.id === id);
+    todos = todos.filter(t => t.id !== id);
+    save();
+    render();
+    toast(`已删除「${todo?.text?.slice(0, 10)}」`);
+  }
+
+  function clearDone() {
+    const count = todos.filter(t => t.done).length;
+    if (count === 0) return;
+    todos = todos.filter(t => !t.done);
+    save();
+    render();
+    toast(`已清除 ${count} 项`);
+  }
+
+  function startEdit(id) {
+    const item = elList.querySelector(`[data-id="${id}"]`);
+    if (!item) return;
+    item.classList.add('editing');
+    const inp = item.querySelector('.edit-input');
+    inp.focus();
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+  }
+
+  function saveEdit(id) {
+    const item = elList.querySelector(`[data-id="${id}"]`);
+    if (!item) return;
+    const inp = item.querySelector('.edit-input');
+    const text = inp.value.trim();
+    if (text) {
+      const todo = todos.find(t => t.id === id);
+      if (todo) { todo.text = text; save(); }
+    }
+    render();
+  }
+
+  function cancelEdit() { render(); }
+
+  function setFilter(f) {
+    filter = f;
+    filterBtns.forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+    render();
+  }
+
+  // ── Event delegation ──
+  elList.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const item = e.target.closest('.todo-item');
+    if (!item) return;
+    const id = item.dataset.id;
+    const action = btn.dataset.action;
+
+    switch (action) {
+      case 'toggle': toggleTodo(id); break;
+      case 'edit':   startEdit(id);  break;
+      case 'delete': deleteTodo(id); break;
+      case 'save':   saveEdit(id);   break;
+      case 'cancel': cancelEdit();   break;
+    }
+  });
+
+  // 编辑输入框键盘事件
+  elList.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.classList.contains('edit-input')) {
+      e.preventDefault();
+      const item = e.target.closest('.todo-item');
+      if (item) saveEdit(item.dataset.id);
+    }
+    if (e.key === 'Escape' && e.target.classList.contains('edit-input')) {
+      cancelEdit();
+    }
+  });
+
+  // ── 触摸手势: 左滑删除 + 长按编辑 ──
+  let longPressTimer;
+  elList.addEventListener('touchstart', e => {
+    const item = e.target.closest('.todo-item');
+    if (!item) return;
+
+    // 记录起始位置用于滑动手势
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+
+    // 先关闭其他已滑开的项目
+    if (swipedItem && swipedItem !== item) {
+      swipedItem.classList.remove('swiped');
+      swipedItem = null;
+    }
+
+    // 长按编辑
+    const textEl = e.target.closest('.todo-text');
+    if (textEl && !item.classList.contains('editing')) {
+      longPressTimer = setTimeout(() => {
+        startEdit(item.dataset.id);
+        navigator.vibrate && navigator.vibrate(10);
+      }, 600);
+    }
+  }, { passive: false });
+
+  elList.addEventListener('touchmove', e => {
+    clearTimeout(longPressTimer);
+
+    const item = e.target.closest('.todo-item');
+    if (!item || item.classList.contains('editing')) return;
+
+    const dx = e.touches[0].clientX - touchStartX;
+    const dy = e.touches[0].clientY - touchStartY;
+
+    // 水平滑动（超过垂直偏差阈值）
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+      e.preventDefault();
+      if (dx < -30) {
+        item.classList.add('swiped');
+        swipedItem = item;
+      } else if (dx > 30) {
+        item.classList.remove('swiped');
+        swipedItem = null;
+      }
+    }
+  }, { passive: false });
+
+  elList.addEventListener('touchend', e => {
+    clearTimeout(longPressTimer);
+  });
+
+  // 点击空白处关闭滑动
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.todo-item') && swipedItem) {
+      swipedItem.classList.remove('swiped');
+      swipedItem = null;
+    }
+  });
+
+  // ── Add & Enter ──
+  elAddBtn.addEventListener('click', addTodo);
+  elInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addTodo(); }
+  });
+
+  // ── Filters ──
+  filterBtns.forEach(b => b.addEventListener('click', () => setFilter(b.dataset.filter)));
+
+  // ── Clear done ──
+  elClearDone.addEventListener('click', clearDone);
+
+  // ── PWA Install ──
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // 显示安装横幅
+    const dismissed = localStorage.getItem('pwa_banner_dismissed');
+    if (!dismissed) {
+      setTimeout(() => elBanner.classList.add('show'), 2000);
+    }
+  });
+
+  elInstallBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const result = await deferredPrompt.userChoice;
+    if (result.outcome === 'accepted') {
+      toast('安装成功！🎉');
+    }
+    deferredPrompt = null;
+    elBanner.classList.remove('show');
+  });
+
+  elDismissBtn.addEventListener('click', () => {
+    elBanner.classList.remove('show');
+    localStorage.setItem('pwa_banner_dismissed', '1');
+  });
+
+  // 已安装后隐藏横幅
+  window.addEventListener('appinstalled', () => {
+    elBanner.classList.remove('show');
+    deferredPrompt = null;
+  });
+
+  // ── Date ──
+  function updateDate() {
+    const now = new Date();
+    const opts = { year:'numeric', month:'long', day:'numeric', weekday:'long' };
+    elDate.textContent = now.toLocaleDateString('zh-CN', opts);
+  }
+  updateDate();
+
+  // ── Register Service Worker ──
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
+
+  // ── Init ──
+  load();
+  render();
+  elInput.focus();
+})();
+</script>
+</body>
+</html>

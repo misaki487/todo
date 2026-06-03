@@ -1,0 +1,19 @@
+{
+  "name": "待办事项",
+  "short_name": "Todo",
+  "description": "简洁高效的待办事项管理工具",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f0f2f5",
+  "theme_color": "#4f46e5",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234f46e5'/><text x='50' y='38' text-anchor='middle' font-size='48'>📋</text><text x='50' y='72' text-anchor='middle' font-size='22' font-weight='bold' fill='white'>Todo</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
